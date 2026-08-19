@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard - URL Detector</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 70px auto;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #38bdf8;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #cbd5e1;
+            margin-bottom: 35px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #0284c7;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0369a1;
+        }
+
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            background: #334155;
+            display: none;
+        }
+
+        .safe {
+            color: #22c55e;
+        }
+
+        .suspicious {
+            color: #facc15;
+        }
+
+        .high {
+            color: #ef4444;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🛡️ PhishGuard</h1>
+
+    <p class="subtitle">
+        Phishing URL Detection & Security Analysis
+    </p>
+
+    <div class="card">
+
+        <input
+            type="text"
+            id="urlInput"
+            placeholder="Enter URL to analyze..."
+        >
+
+        <button onclick="analyzeURL()">
+            🔍 Analyze URL
+        </button>
+
+        <div id="result"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+async function analyzeURL() {
+
+    const url = document.getElementById("urlInput").value.trim();
+    const result = document.getElementById("result");
+
+    if (!url) {
+        result.style.display = "block";
+        result.innerHTML = "<p>Please enter a URL.</p>";
+        return;
+    }
+
+    result.style.display = "block";
+    result.innerHTML = "<p>🔄 Analyzing URL...</p>";
+
+    try {
+
+        const response = await fetch("/api/analyze", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                url: url
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            result.innerHTML = `<p>${data.error}</p>`;
+            return;
+        }
+
+        let riskClass = "";
+
+        if (data.risk === "SAFE") {
+            riskClass = "safe";
+        } 
+        else if (data.risk === "SUSPICIOUS") {
+            riskClass = "suspicious";
+        } 
+        else {
+            riskClass = "high";
+        }
+
+        let reasons = "";
+
+        if (data.reasons.length > 0) {
+
+            reasons = "<h3>Detected Indicators</h3><ul>";
+
+            data.reasons.forEach(reason => {
+                reasons += `<li>${reason}</li>`;
+            });
+
+            reasons += "</ul>";
+
+        } else {
+
+            reasons = "<p>✅ No suspicious indicators detected.</p>";
+
+        }
+
+        result.innerHTML = `
+            <h2 class="${riskClass}">
+                ${data.risk}
+            </h2>
+
+            <h3>Risk Score: ${data.score}/100</h3>
+
+            <p><strong>URL:</strong> ${data.url}</p>
+
+            ${reasons}
+        `;
+
+    } catch (error) {
+
+        result.innerHTML =
+            "<p>❌ Could not connect to the backend.</p>";
+
+    }
+}
+
+</script>
+
+</body>
+</html>
